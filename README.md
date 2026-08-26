@@ -1,5 +1,5 @@
 # Data Triage
-
+Site: [https://data-triage.netlify.app/](https://data-triage.netlify.app/)
 Built by Reuben.
 
 I made Data Triage to speed up the part of analysis that usually comes first: opening an unfamiliar file, working out what is in it, checking whether anything looks wrong, and deciding what is worth looking at next.
