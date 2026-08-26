@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Data Triage by Reuben - browser-based checks for unfamiliar datasets." />
+  <meta name="theme-color" content="#17151c" />
+  <title>Data Triage</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='10' fill='%237b6cc3'/%3E%3Cpath d='M17 18h30v7H17zm0 11h20v7H17zm0 11h26v7H17z' fill='white'/%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#" aria-label="Data Triage home">
+      <span class="brand-mark">DT</span>
+      <span>
+        <strong>Data Triage</strong>
+        <small>Dataset checks and exploratory analysis</small>
+      </span>
+    </a>
+    <div class="topbar-actions">
+      <button id="themeToggle" class="ghost-btn" type="button" aria-label="Toggle colour theme">☀ <span>Light mode</span></button>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero" id="hero">
+      <div class="hero-copy">
+        <p class="section-label">Dataset audit</p>
+        <h1>Check the data before you analyse it.</h1>
+        <p>Load a CSV, spreadsheet or JSON file to check structure, missing values, duplicates, likely formats and relationships between fields. Everything is processed in this browser session.</p>
+        <p class="hero-detail">Checks include data types, expected formats, outliers, category balance, schema changes and basic relationship measures.</p>
+      </div>
+
+      <div class="upload-card" id="dropzone" tabindex="0" role="button" aria-label="Upload a dataset">
+        <div class="upload-filetypes">CSV · XLSX · JSON</div>
+        <h2>Open a dataset</h2>
+        <p>Drag a file here or choose one from your device.</p>
+        <button id="chooseFileBtn" class="primary-btn" type="button">Choose file</button>
+        <button id="sampleBtn" class="text-btn" type="button">Use sample data</button>
+        <input id="fileInput" type="file" hidden accept=".csv,.tsv,.psv,.txt,.json,.jsonl,.ndjson,.xlsx,.xls,.xlsb,.ods" />
+        <div class="format-list"><strong>Supported:</strong> CSV, TSV, PSV, TXT, JSON, JSONL, NDJSON, XLSX, XLS, XLSB and ODS</div>
+        <div class="privacy-note"><strong>No upload storage.</strong> Source data is read locally and cleared when the page is refreshed or closed.</div>
+      </div>
+    </section>
+
+    <section id="workspace" class="workspace hidden" aria-live="polite">
+      <div class="workspace-head">
+        <div>
+          <span class="section-label">Current dataset</span>
+          <h2 id="datasetName">Dataset</h2>
+          <p id="datasetMeta">-</p>
+        </div>
+        <div class="workspace-actions">
+          <label class="focus-control">Focus variable
+            <select id="focusSelect"><option value="">All variables</option></select>
+          </label>
+          <button id="newFileBtn" class="ghost-btn" type="button">New dataset</button>
+          <button id="compareBtn" class="ghost-btn" type="button">Compare schema</button>
+          <button id="exportBtn" class="primary-btn" type="button">Download report</button>
+          <input id="compareFileInput" type="file" hidden accept=".csv,.tsv,.psv,.txt,.json,.jsonl,.ndjson,.xlsx,.xls,.xlsb,.ods" />
+        </div>
+      </div>
+
+      <nav class="tabs" aria-label="Analysis sections">
+        <button class="tab active" data-tab="overview" type="button">Overview</button>
+        <button class="tab" data-tab="data" type="button">Data preview</button>
+        <button class="tab" data-tab="quality" type="button">Data quality <span id="issueBadge" class="tab-badge">0</span></button>
+        <button class="tab" data-tab="relationships" type="button">Relationships</button>
+        <button class="tab" data-tab="next" type="button">Next checks</button>
+        <button class="tab" data-tab="compare" type="button">Schema comparison</button>
+      </nav>
+
+      <div class="tab-panel active" id="tab-overview">
+        <div id="summaryCards" class="summary-grid"></div>
+        <div class="dashboard-grid">
+          <article class="panel score-panel">
+            <div class="panel-heading"><div><span class="panel-kicker">Data quality</span><h3>Automated check score</h3></div></div>
+            <div class="score-wrap">
+              <div class="score-ring" id="scoreRing"><span id="qualityScore">-</span><small>/ 100</small></div>
+              <div><strong id="qualityLabel">Waiting for data</strong><p id="qualitySummary">Open a dataset to run the checks.</p></div>
+            </div>
+          </article>
+          <article class="panel">
+            <div class="panel-heading"><div><span class="panel-kicker">Structure</span><h3>Detected column types</h3></div></div>
+            <div class="chart-shell overview-chart"><canvas id="typeChart"></canvas></div>
+          </article>
+          <article class="panel wide">
+            <div class="panel-heading"><div><span class="panel-kicker">Review</span><h3>Items to check first</h3></div></div>
+            <div id="topFindings" class="finding-list"></div>
+          </article>
+        </div>
+      </div>
+
+      <div class="tab-panel" id="tab-quality">
+        <div class="section-intro"><div><span class="section-label">Data quality</span><h2>Checks and format validation</h2><p>These checks flag values that may need review. Expected formats are inferred from column names and observed values, so confirm them against the source system or data dictionary.</p></div></div>
+        <div class="dashboard-grid">
+          <article class="panel wide"><div class="panel-heading"><div><span class="panel-kicker">Checks</span><h3>Issues found</h3></div><div id="severityLegend" class="legend"></div></div><div id="issueList" class="issue-list"></div></article>
+          <article class="panel wide"><div class="panel-heading"><div><span class="panel-kicker">Completeness</span><h3>Missing values by column (%)</h3></div></div><div class="chart-shell"><canvas id="missingChart"></canvas></div></article>
+          <article class="panel wide"><div class="panel-heading"><div><span class="panel-kicker">Columns</span><h3>Profile and expected format</h3></div></div><div class="table-wrap"><table id="profileTable"><thead><tr><th>Column</th><th>Detected type</th><th>Expected format</th><th>Format match</th><th>Complete</th><th>Distinct values</th><th>Example values</th><th>Flags</th></tr></thead><tbody></tbody></table></div></article>
+        </div>
+      </div>
+
+      <div class="tab-panel" id="tab-relationships">
+        <div class="section-intro"><div><span class="section-label">Relationships</span><h2>Variables to compare</h2><p id="relationshipIntro">Relationships are ranked after excluding likely IDs, constant fields and very sparse columns. Select a row to view its chart or select a measure name to see what it means.</p></div></div>
+        <div class="dashboard-grid">
+          <article class="panel wide"><div class="panel-heading"><div><span class="panel-kicker">Results</span><h3 id="relationshipTitle">Ranked relationships</h3></div></div><div id="relationshipList" class="relationship-list"></div></article>
+          <article class="panel"><div class="panel-heading"><div><span class="panel-kicker">Chart</span><h3 id="relationshipChartTitle">Top relationship</h3></div></div><div class="chart-shell relationship-chart"><canvas id="relationshipChart"></canvas></div></article>
+          <article class="panel"><div class="panel-heading"><div><span class="panel-kicker">Explanation</span><h3>How to read this</h3></div></div><div id="relationshipExplanation" class="prose-note"></div></article>
+          </div>
+      </div>
+
+      <div class="tab-panel" id="tab-next">
+        <div class="section-intro"><div><span class="section-label">Next checks</span><h2>Suggested follow-up</h2><p>Suggestions depend on the fields, sample sizes and quality checks in the current dataset. They are prompts for further work, not automatic conclusions.</p></div></div>
+        <div id="suggestionGrid" class="suggestion-grid"></div>
+        <div id="suggestedVisuals" class="suggested-visuals"></div>
+      </div>
+
+      <div class="tab-panel" id="tab-compare">
+        <div class="section-intro"><div><span class="section-label">Schema comparison</span><h2>Compare with another file</h2><p>Choose another extract or version to check for changed columns, types, expected formats and missingness. The comparison file is also processed locally.</p></div><button id="compareTabBtn" class="primary-btn" type="button">Choose comparison file</button></div>
+        <div id="compareEmpty" class="panel compare-empty"><strong>No comparison loaded</strong><p>Useful for checking a new monthly extract or revised file before repeating an analysis.</p><button id="sampleCompareBtn" class="ghost-btn" type="button">Use sample comparison</button></div>
+        <div id="compareResults" class="hidden">
+          <div id="compareSummary" class="summary-grid"></div>
+          <div class="dashboard-grid">
+            <article class="panel wide"><div class="panel-heading"><div><span class="panel-kicker">Changes</span><h3>Schema differences</h3></div></div><div id="schemaFindings" class="finding-list"></div></article>
+            <article class="panel wide"><div class="panel-heading"><div><span class="panel-kicker">Columns</span><h3>Field-by-field comparison</h3></div></div><div class="table-wrap"><table id="schemaTable"><thead><tr><th>Column</th><th>Status</th><th>Current type</th><th>Comparison type</th><th>Current format</th><th>Comparison format</th><th>Missing change</th></tr></thead><tbody></tbody></table></div></article>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-panel" id="tab-data">
+        <div class="section-intro"><div><span class="section-label">Data preview</span><h2>Parsed data</h2><p>This is a read-only preview of the parsed source file. The original file is not changed or stored.</p></div></div>
+        <div class="panel"><div class="table-wrap data-preview"><table id="dataTable"><thead></thead><tbody></tbody></table></div><p id="previewNote" class="muted"></p></div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <span>Built by Reuben</span>
+    <span>Automated checks are a starting point. Confirm business rules, expected formats and statistical assumptions before using the results.</span>
+  </footer>
+
+  <div id="measurePopover" class="measure-popover hidden" role="dialog" aria-live="polite"></div>
+
+  <div id="loadingOverlay" class="loading-overlay hidden" role="status" aria-live="polite">
+    <div class="loader-card"><div class="spinner"></div><strong id="loadingTitle">Reading dataset…</strong><span id="loadingText">Parsing locally in your browser.</span></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+  <script src="rules.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
