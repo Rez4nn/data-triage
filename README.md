@@ -72,12 +72,6 @@ The built-in sample contains 160 fictional customer records. Most values are val
 
 `signup_date` uses valid `YYYY-MM-DD` dates throughout so the date validator can be checked against a clean field.
 
-## Running it
-
-`index.html` is the default page. The project is static and can be deployed directly to Netlify.
-
-The page uses SheetJS for spreadsheet parsing and Chart.js for charts, both loaded from a CDN.
-
 ## Limits
 
 This is an automated screening tool, not a replacement for domain knowledge. The checks cannot know company-specific business rules unless they are encoded explicitly. Relationship measures are descriptive, expected formats are inferred, and large pairwise scans are capped to keep browser performance reasonable.
